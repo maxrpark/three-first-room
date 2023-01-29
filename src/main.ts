@@ -13,6 +13,20 @@ const gui = new dat.GUI();
 
 const canvas = document.querySelector("#webgl") as HTMLElement;
 
+const updateAllMaterials = () => {
+    scene.traverse((child) => {
+        if (
+            child instanceof THREE.Mesh &&
+            child.material instanceof THREE.MeshStandardMaterial
+        ) {
+            // ...
+
+            child.castShadow = true;
+            child.receiveShadow = true;
+        }
+    });
+};
+
 // Loader
 
 import {
@@ -37,6 +51,10 @@ import {
     wallMetallic,
     wallNormal,
     wallRoughness,
+    grassAmbientOcclusion,
+    grassBaseColor,
+    grassNormal,
+    grassRoughness,
 } from "../public/assets/textures";
 
 // Utils
@@ -66,14 +84,55 @@ const camera = new THREE.PerspectiveCamera(
 camera.position.set(3, 1.5, -2);
 // camera.position.set(10, 3, -2);
 
-const axesHelper = new THREE.AxesHelper(5);
-scene.add(axesHelper);
+// const axesHelper = new THREE.AxesHelper(5);
+// scene.add(axesHelper);
 
 // controls
 scene.add(camera);
 
 const controls = new OrbitControls(camera, canvas);
 controls.enableDamping = true;
+
+// Plane
+
+const floorOutside = new THREE.Group();
+floorOutside.position.y = -0.01;
+scene.add(floorOutside);
+
+const plane = new THREE.Mesh(
+    new THREE.CircleGeometry(2.5, 64),
+    new THREE.MeshStandardMaterial({
+        map: grassBaseColor,
+        aoMap: grassAmbientOcclusion,
+        aoMapIntensity: 1,
+        normalMap: grassNormal,
+        roughnessMap: grassRoughness,
+        roughness: 1,
+    })
+);
+
+plane.geometry.setAttribute(
+    "uv2",
+    new THREE.Float32BufferAttribute(plane.geometry.attributes.uv.array, 2)
+);
+grassBaseColor.repeat.set(3, 3);
+grassAmbientOcclusion.repeat.set(3, 3);
+grassNormal.repeat.set(3, 3);
+grassRoughness.repeat.set(3, 3);
+
+grassBaseColor.wrapS = THREE.RepeatWrapping;
+grassAmbientOcclusion.wrapS = THREE.RepeatWrapping;
+grassNormal.wrapS = THREE.RepeatWrapping;
+grassRoughness.wrapS = THREE.RepeatWrapping;
+
+grassBaseColor.wrapT = THREE.RepeatWrapping;
+grassAmbientOcclusion.wrapT = THREE.RepeatWrapping;
+grassNormal.wrapT = THREE.RepeatWrapping;
+grassRoughness.wrapT = THREE.RepeatWrapping;
+
+plane.rotation.x = -Math.PI * 0.5;
+
+floorOutside.add(plane);
 
 // room
 
@@ -86,6 +145,7 @@ gltfLoader.load("/assets/models/an_animated_cat/scene.gltf", (gltf) => {
     action.play();
     gltf.scene.scale.set(0.02, 0.02, 0.02);
     gltf.scene.position.set(0.5, 0, 0);
+    updateAllMaterials();
     room.add(gltf.scene);
 });
 let catTwoMixer: any = null;
@@ -95,49 +155,9 @@ gltfLoader.load("/assets/models/animated_bengal_cat/scene.gltf", (gltf) => {
     const action = catTwoMixer.clipAction(gltf.animations[0]);
     action.play();
     gltf.scene.scale.set(0.5, 0.5, 0.5);
+    updateAllMaterials();
     room.add(gltf.scene);
 });
-
-// const underFloor = new THREE.Mesh(
-//     new THREE.SphereGeometry(1.5, 32, 64, 0, 3.14),
-//     new THREE.MeshStandardMaterial({
-//         map: gravelBaseColor,
-//         aoMap: gravelAmbientOcclusion,
-//         aoMapIntensity: 1,
-//         normalMap: gravelNormal,
-//         roughnessMap: gravelRoughness,
-//         roughness: 1,
-//         displacementMap: gravelHeight,
-//         displacementScale: 0.001,
-//     })
-// );
-
-// underFloor.rotation.x = Math.PI * 0.5;
-
-// underFloor.geometry.setAttribute(
-//     "uv2",
-//     new THREE.Float32BufferAttribute(underFloor.geometry.attributes.uv.array, 2)
-// );
-
-// gravelBaseColor.repeat.set(4, 4);
-// gravelAmbientOcclusion.repeat.set(4, 4);
-// gravelNormal.repeat.set(4, 4);
-// gravelRoughness.repeat.set(4, 4);
-// gravelHeight.repeat.set(4, 4);
-
-// gravelBaseColor.wrapS = THREE.RepeatWrapping;
-// gravelAmbientOcclusion.wrapS = THREE.RepeatWrapping;
-// gravelNormal.wrapS = THREE.RepeatWrapping;
-// gravelRoughness.wrapS = THREE.RepeatWrapping;
-// gravelHeight.wrapS = THREE.RepeatWrapping;
-
-// gravelBaseColor.wrapT = THREE.RepeatWrapping;
-// gravelAmbientOcclusion.wrapT = THREE.RepeatWrapping;
-// gravelNormal.wrapT = THREE.RepeatWrapping;
-// gravelRoughness.wrapT = THREE.RepeatWrapping;
-// gravelHeight.wrapT = THREE.RepeatWrapping;
-
-// room.add(underFloor);
 
 const floor = new THREE.Mesh(
     new THREE.PlaneGeometry(3, 3, 10, 10),
@@ -159,6 +179,7 @@ floor.geometry.setAttribute(
     "uv2",
     new THREE.Float32BufferAttribute(floor.geometry.attributes.uv.array, 2)
 );
+floor.receiveShadow = true;
 
 // carpet
 
@@ -235,44 +256,66 @@ wallTwo.geometry.setAttribute(
 
 // objects
 
-// Plants
+// Lamp
 
-const plantOne = new THREE.Group();
+const lampOne = new THREE.Group();
 
-const plantOneStem = new THREE.Mesh(
+const lampOneStem = new THREE.Mesh(
     new THREE.CylinderGeometry(0.02, 0.02, 0.2, 32),
     new THREE.MeshStandardMaterial()
 );
 
-const plantOneBush = new THREE.Mesh(
+const lampOneBall = new THREE.Mesh(
     new THREE.SphereGeometry(0.2, 32, 64),
     new THREE.MeshStandardMaterial()
 );
 
-plantOneBush.position.y = 0.3;
-plantOne.position.y = 0.3;
+lampOneBall.position.y = 0.6;
+lampOneStem.position.y = 0.3;
+lampOne.position.y = 0.2;
+lampOne.position.x = -1.2;
+lampOne.position.z = 1.2;
 
-plantOne.add(plantOneStem, plantOneBush);
+const geometry = new THREE.CylinderGeometry(0.2, 0.1, 0.5, 32);
+const material = new THREE.MeshBasicMaterial({ color: 0xffff00 });
+const lampBase = new THREE.Mesh(geometry, material);
 
-room.add(plantOne);
+lampOne.add(lampOneStem, lampOneBall, lampBase);
+
+lampOneBall.castShadow = true;
+lampBase.castShadow = true;
+
+room.add(lampOne);
 
 // Lights
 
 // AMBIENT LIGHT
-// const ambientLight = new THREE.AmbientLight(0xffffff, 0);
-const ambientLight = new THREE.AmbientLight(0xffffff, 1.6);
+
+const ambientLight = new THREE.AmbientLight(0xffffff, 1);
 
 // Point Light
 
-const pointLight = new THREE.PointLight(0xff9000, 0.9);
+const pointLight = new THREE.PointLight(0xff9000, 1);
+// const lightHelper = new THREE.PointLightHelper(pointLight, 0.6);
+pointLight.position.copy(lampOne.position);
+pointLight.position.y = 0.8;
+pointLight.castShadow = true;
 
-scene.add(
-    pointLight,
-    ambientLight
-    // directionalLight,
-);
+scene.add(pointLight, ambientLight);
 
 gui.add(ambientLight, "intensity").min(0).max(5).step(0.001);
+
+// Directional light
+const directionalLight = new THREE.DirectionalLight("#ffffff", 0.7);
+directionalLight.castShadow = true;
+scene.add(directionalLight);
+
+directionalLight.position.set(2, 3, 1);
+
+gui.add(directionalLight, "intensity").min(0).max(1).step(0.001);
+gui.add(directionalLight.position, "x").min(-5).max(5).step(0.001);
+gui.add(directionalLight.position, "y").min(-5).max(5).step(0.001);
+gui.add(directionalLight.position, "z").min(-5).max(5).step(0.001);
 
 // events
 
@@ -291,10 +334,15 @@ window.addEventListener("resize", () => {
 
 const renderer = new THREE.WebGLRenderer({
     canvas,
+
+    alpha: true,
 });
+renderer.setClearColor("#00171F", 1);
 
 renderer.setSize(sizes.width, sizes.height);
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+renderer.shadowMap.enabled = true;
 
 // Animate
 

@@ -62,6 +62,19 @@ const carpetRoughness = textureLoader.load(
     "/assets/textures/carpet/carpet_roughness.jpg"
 );
 
+// grass
+
+const grassAmbientOcclusion = textureLoader.load(
+    "/assets/textures/grass/grass_ambientOcclusion.jpg"
+);
+const grassBaseColor = textureLoader.load(
+    "/assets/textures/grass/grass_basecolor.jpg"
+);
+const grassNormal = textureLoader.load("/assets/textures/grass/normal.jpg");
+const grassRoughness = textureLoader.load(
+    "/assets/textures/grass/roughness.jpg"
+);
+
 export {
     floorAmbientOcclusion,
     floorBaseColor,
@@ -84,4 +97,8 @@ export {
     carpetHeight,
     carpetNormal,
     carpetRoughness,
+    grassAmbientOcclusion,
+    grassBaseColor,
+    grassNormal,
+    grassRoughness,
 };
